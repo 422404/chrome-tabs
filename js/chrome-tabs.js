@@ -95,9 +95,11 @@
         this.layoutTabs()
       })
 
-      this.el.addEventListener('dblclick', event => {
+      let newTab = event => {
         if ([this.el, this.tabContentEl].includes(event.target)) this.addTab()
-      })
+      }
+      this.el.addEventListener('dblclick', newTab)
+      this.el.addEventListener('auxclick', newTab)
 
       this.tabEls.forEach((tabEl) => this.setTabCloseEventListener(tabEl))
     }
@@ -207,6 +209,8 @@
       this.cleanUpPreviouslyDraggedTabs()
       this.layoutTabs()
       this.setupDraggabilly()
+
+      tabEl.addEventListener('auxclick', () => { this.removeTab(tabEl) })
     }
 
     setTabCloseEventListener(tabEl) {
