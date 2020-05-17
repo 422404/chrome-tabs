@@ -16,6 +16,19 @@ activeTabBackgroundColor = #fff
   *
     box-sizing inherit
     font inherit
+  
+  .chrome-tabs-tab-drop
+    top 0px
+    bottom 0px
+    left 0px
+    right 0px
+    position absolute
+    z-index 10
+    pointer-events none
+
+    &.on-tab-drag-over
+      background-color cornflowerblue
+      opacity 30%
 
   .chrome-tabs-content
     position relative
@@ -24,6 +37,7 @@ activeTabBackgroundColor = #fff
 
   .chrome-tab
     position absolute
+    top 0
     left 0
     height 36px
     width 240px
