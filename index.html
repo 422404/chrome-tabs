@@ -47,7 +47,7 @@
     </div>
 
     <script type="module">
-        import { ChromeTabs } from './js/chrome-tabs.js'
+        import { ChromeTabs, ChromeTabData } from './js/chrome-tabs.js'
 
         let el = document.querySelectorAll('.chrome-tabs')[0]
         let el2 = document.querySelectorAll('.chrome-tabs')[1]
@@ -58,27 +58,27 @@
         chromeTabs.init(el)
         chromeTabs2.init(el2)
 
-        chromeTabs.addTab({
-            title: 'Facebook',
-            favicon: './demo/images/facebook-favicon.ico'
-        })
-        chromeTabs2.addTab({
-            title: 'Google',
-            favicon: './demo/images/google-favicon.ico'
-        })
+        chromeTabs.addTab(new ChromeTabData(
+            'Facebook',
+            './demo/images/facebook-favicon.ico'
+        ))
+        chromeTabs2.addTab(new ChromeTabData(
+            'Google',
+            './demo/images/google-favicon.ico'
+        ))
 
         document.querySelector('button[data-add-tab]').addEventListener('click', _ => {
-            chromeTabs.addTab({
-                title: 'New Tab' + ++i,
-                favicon: false
-            })
+            chromeTabs.addTab(new ChromeTabData(
+                'New Tab' + ++i,
+                null
+            ))
         })
 
         document.querySelector('button[data-add-background-tab]').addEventListener('click', _ => {
-            chromeTabs.addTab({
-                title: 'New Tab ' + ++i,
-                favicon: false
-            }, {
+            chromeTabs.addTab(new ChromeTabData(
+                'New Tab ' + ++i,
+                null
+            ), {
                 background: true
             })
         })

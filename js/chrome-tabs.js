@@ -10,6 +10,10 @@ const TAB_SIZE_SMALL = 84
 const TAB_SIZE_SMALLER = 60
 const TAB_SIZE_MINI = 48
 
+/**
+ * @param {number} value
+ * @param {number[]} array
+ */
 const closest = (value, array) => {
     let closest = Infinity
     let closestIndex = -1
@@ -33,29 +37,28 @@ const tabTemplate = `
     <div class="chrome-tab-content">
       <div class="chrome-tab-favicon"></div>
       <div class="chrome-tab-title"></div>
-      <!-- <div class="chrome-tab-drag-handle"></div> -->
       <div class="chrome-tab-close"></div>
     </div>
   </div>
 `
-
-const defaultTapProperties = {
-    title: 'New tab',
-    favicon: false
-}
 
 let instanceId = 0
 
 export class ChromeTabData {
     /**
      * @param {string} title
-     * @param {string | boolean} favicon
+     * @param {string} favicon
      */
     constructor(title, favicon) {
         this.title = title
         this.favicon = favicon
     }
 }
+
+const defaultTabProperties = new ChromeTabData(
+    'New tab',
+    null
+)
 
 export class ChromeTabs {
     init(el) {
@@ -73,6 +76,10 @@ export class ChromeTabs {
         this.setupDrag()
     }
 
+    /**
+     * @param {string} eventName 
+     * @param {*} data
+     */
     emit(eventName, data) {
         this.el.dispatchEvent(new CustomEvent(eventName, { detail: data }))
     }
@@ -80,11 +87,12 @@ export class ChromeTabs {
     setupTabDrop() {
         /**
          * @param {DragEvent} e
-         * @param {Function} c
+         * @param {Function} callback
          */
-        let ensureDifferentInstance = (e, c) => {
-            if (!e.dataTransfer.types.includes(this.dropInstanceId())) {
-                c()
+        let ensureTabButDifferentInstance = (e, callback) => {
+            if (e.dataTransfer.types.includes('chrome-tabs/tab')
+                    && !e.dataTransfer.types.includes(this.dropInstanceId())) {
+                callback()
             }
         }
 
@@ -99,41 +107,35 @@ export class ChromeTabs {
 
         if (this.tabDropEl) {
             this.tabDropEl.ondragenter = e => {
-                const isTab = e.dataTransfer.types.includes('chrome-tabs/tab')
-                if (isTab) {
-                    ensureDifferentInstance(e, () => {
-                        this.tabDropEl.classList.add('on-tab-drag-over')
-                    })
-                }
+                ensureTabButDifferentInstance(e, () => {
+                    this.tabDropEl.classList.add('on-tab-drag-over')
+                })
             }
 
             this.el.ondragover = e => {
                 e.preventDefault()
-                ensureDifferentInstance(e, () => {
+                ensureTabButDifferentInstance(e, () => {
                     // renders the drop target interactive
                     this.tabDropEl.style.pointerEvents = 'all'
                 })
             }
 
             this.tabDropEl.ondragleave = e => {
-                ensureDifferentInstance(e, () => {
+                ensureTabButDifferentInstance(e, () => {
                     // renders the drop target non interactive
                     removeDropTarget()
                 })
             }
 
             this.tabDropEl.ondrop = e => {
-                ensureDifferentInstance(e, () => {
+                ensureTabButDifferentInstance(e, () => {
                     const stringData = e.dataTransfer.getData('chrome-tabs/tab')
                     if (stringData) {
                         removeDropTarget()
 
                         /** @type {ChromeTabData} */
                         const data = JSON.parse(stringData)
-                        const insertedTab = this.addTab({
-                            title: data.title,
-                            favicon: data.favicon
-                        })
+                        const insertedTab = this.addTab(data)
                         this.emit('insertedTab', { insertedTab })
                     }
                 })
@@ -257,7 +259,11 @@ export class ChromeTabs {
         return div.firstElementChild
     }
 
-    addTab(tabProperties, { animate = true, background = false } = {}) {
+    /**
+     * @param {ChromeTabData} tabData
+     * @param {{ animate: boolean, background: boolean }} config
+     */
+    addTab(tabData, { animate = true, background = false } = {}) {
         const tabEl = this.createNewTabEl()
 
         if (animate) {
@@ -265,10 +271,10 @@ export class ChromeTabs {
             setTimeout(() => tabEl.classList.remove('chrome-tab-was-just-added'), 500)
         }
 
-        tabProperties = Object.assign({}, defaultTapProperties, tabProperties)
+        tabData = { ...defaultTabProperties, ...tabData }
         this.tabContentEl.appendChild(tabEl)
         this.setTabCloseEventListener(tabEl)
-        this.updateTab(tabEl, tabProperties)
+        this.updateTab(tabEl, tabData)
         this.emit('tabAdd', { tabEl })
         if (!background) this.setCurrentTab(tabEl)
         this.cleanUpPreviouslyDraggedTabs()
@@ -280,6 +286,9 @@ export class ChromeTabs {
         return tabEl
     }
 
+    /**
+     * @param {HTMLElement} tabEl
+     */
     setTabCloseEventListener(tabEl) {
         tabEl.querySelector('.chrome-tab-close').addEventListener('click', _ => this.removeTab(tabEl))
     }
@@ -292,6 +301,9 @@ export class ChromeTabs {
         return !!this.activeTabEl
     }
 
+    /**
+     * @param {HTMLElement} tabEl
+     */
     setCurrentTab(tabEl) {
         const activeTabEl = this.activeTabEl
         if (activeTabEl === tabEl) return
@@ -300,6 +312,9 @@ export class ChromeTabs {
         this.emit('activeTabChange', { tabEl })
     }
 
+    /**
+     * @param {HTMLElement} tabEl
+     */
     removeTab(tabEl) {
         if (tabEl === this.activeTabEl) {
             if (tabEl.nextElementSibling) {
@@ -315,22 +330,26 @@ export class ChromeTabs {
         this.setupDrag()
     }
 
-    updateTab(tabEl, tabProperties) {
-        tabEl.$$chromeTabs = { tabProperties }
+    /**
+     * @param {HTMLElement} tabEl
+     * @param {ChromeTabData} tabData
+     */
+    updateTab(tabEl, tabData) {
+        tabEl.$$chromeTabs = { data: tabData }
 
-        tabEl.querySelector('.chrome-tab-title').textContent = tabProperties.title
+        tabEl.querySelector('.chrome-tab-title').textContent = tabData.title
 
         const faviconEl = tabEl.querySelector('.chrome-tab-favicon')
-        if (tabProperties.favicon) {
-            faviconEl.style.backgroundImage = `url('${tabProperties.favicon}')`
+        if (tabData.favicon) {
+            faviconEl.style.backgroundImage = `url('${tabData.favicon}')`
             faviconEl.removeAttribute('hidden', '')
         } else {
             faviconEl.setAttribute('hidden', '')
             faviconEl.removeAttribute('style')
         }
 
-        if (tabProperties.id) {
-            tabEl.setAttribute('data-tab-id', tabProperties.id)
+        if (tabData.id) {
+            tabEl.setAttribute('data-tab-id', tabData.id)
         }
     }
 
@@ -352,6 +371,7 @@ export class ChromeTabs {
             let initalPos = null
             let prevX = 0
 
+            /** @param {PointerEvent} e */
             tabEl.onpointerdown = e => {
                 this.setCurrentTab(tabEl)
                 initalPos = [e.clientX, e.clientY]
@@ -365,17 +385,19 @@ export class ChromeTabs {
             tabEl.ondragstart = e => {
                 this.isDragging = true
                 this.dragged = tabEl
+                // we don't want any drag image so we pass a blank canvas
                 const canvas = document.createElement('canvas')
                 canvas.width = 0
                 canvas.height = 0
                 e.dataTransfer.setDragImage(canvas, 0, 0)
-                e.dataTransfer.setData('chrome-tabs/tab', JSON.stringify(new ChromeTabData(
-                    ...Object.values(tabEl.$$chromeTabs.tabProperties)
-                )))
+                e.dataTransfer.setData('chrome-tabs/tab', JSON.stringify(
+                    tabEl.$$chromeTabs.data
+                ))
                 // Workaround to pass instance id even so we can only access data when dropped
                 e.dataTransfer.setData(this.dropInstanceId(), '')
             }
 
+            /** @param {DragEvent} e */
             tabEl.ondragend = e => {
                 this.isDragging = false
                 const currentX = originalTabPositionX + (e.clientX - initalPos[0])
@@ -403,6 +425,7 @@ export class ChromeTabs {
 
             /** @param {DragEvent} e */
             tabEl.ondrag = e => {
+                // Avoid responding to a last drag event with coordinates (0, 0)
                 if (e.clientX !== 0 || e.clientX === 0 && prevX < 100) {
                     prevX = e.clientX
 
@@ -428,6 +451,11 @@ export class ChromeTabs {
         })
     }
 
+    /**
+     * @param {HTMLElement} tabEl
+     * @param {number} originIndex
+     * @param {number} destinationIndex
+     */
     animateTabMove(tabEl, originIndex, destinationIndex) {
         if (destinationIndex < originIndex) {
             tabEl.parentNode.insertBefore(tabEl, this.tabEls[destinationIndex])
