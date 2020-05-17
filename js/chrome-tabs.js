@@ -62,11 +62,13 @@ export class ChromeTabs {
     /**
      * @param {HTMLElement} el
      * @param {string | number} instanceId
+     * @param {(tabEl: HTMLElement, tabData: ChromeTabData) => any} onTabDrag
      */
-    init(el, instanceId) {
+    init(el, instanceId, onTabDrag = () => ({})) {
         this.el = el
 
         this.instanceId = instanceId
+        this.onTabDrag = onTabDrag
         this.el.setAttribute('data-chrome-tabs-instance-id', this.instanceId)
 
         this.setupTabDrop()
@@ -88,7 +90,7 @@ export class ChromeTabs {
     setupTabDrop() {
         /**
          * @param {DragEvent} e
-         * @param {Function} callback
+         * @param {function} callback
          */
         let ensureTabButDifferentInstance = (e, callback) => {
             if (e.dataTransfer.types.includes('chrome-tabs/tab')
@@ -137,7 +139,7 @@ export class ChromeTabs {
                         /** @type {ChromeTabData} */
                         const data = JSON.parse(stringData)
                         const insertedTab = this.addTab(data)
-                        this.emit('insertedTab', { insertedTab })
+                        this.emit('insertedTab', { insertedTab, tabData: { ...data } })
                     }
                 })
             }
@@ -392,7 +394,10 @@ export class ChromeTabs {
                 canvas.height = 0
                 e.dataTransfer.setDragImage(canvas, 0, 0)
                 e.dataTransfer.setData('chrome-tabs/tab', JSON.stringify(
-                    tabEl.$$chromeTabs.data
+                    {
+                        ...this.onTabDrag(tabEl, tabEl.$$chromeTabs.data),
+                        ...tabEl.$$chromeTabs.data
+                    }
                 ))
                 // Workaround to pass instance id even so we can only access data when dropped
                 e.dataTransfer.setData(this.dropInstanceId(), '')
