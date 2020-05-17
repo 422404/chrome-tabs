@@ -42,8 +42,6 @@ const tabTemplate = `
   </div>
 `
 
-let instanceId = 0
-
 export class ChromeTabData {
     /**
      * @param {string} title
@@ -61,12 +59,15 @@ const defaultTabProperties = new ChromeTabData(
 )
 
 export class ChromeTabs {
-    init(el) {
+    /**
+     * @param {HTMLElement} el
+     * @param {string | number} instanceId
+     */
+    init(el, instanceId) {
         this.el = el
 
         this.instanceId = instanceId
         this.el.setAttribute('data-chrome-tabs-instance-id', this.instanceId)
-        instanceId += 1
 
         this.setupTabDrop()
         this.setupCustomProperties()
