@@ -55,8 +55,10 @@
         let chromeTabs2 = new ChromeTabs()
         let i = 0
 
-        chromeTabs.init(el, 1)
+        chromeTabs.init(el, 1, (t, d) => ({ hello: 'world' }))
         chromeTabs2.init(el2, 2)
+
+        el2.addEventListener('insertedTab', e => console.log(e))
 
         chromeTabs.addTab(new ChromeTabData(
             'Facebook',

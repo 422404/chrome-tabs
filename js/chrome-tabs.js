@@ -50,6 +50,10 @@ export class ChromeTabData {
     constructor(title, favicon) {
         this.title = title
         this.favicon = favicon
+        /** @type {number} */
+        this.id = null
+        /** @type {string | number} */
+        this.sourceInstanceId = null
     }
 }
 
@@ -66,7 +70,7 @@ export class ChromeTabs {
      */
     init(el, instanceId, onTabDrag = () => ({})) {
         this.el = el
-
+        this.nextTabId = 1
         this.instanceId = instanceId
         this.onTabDrag = onTabDrag
         this.el.setAttribute('data-chrome-tabs-instance-id', this.instanceId)
@@ -274,7 +278,12 @@ export class ChromeTabs {
             setTimeout(() => tabEl.classList.remove('chrome-tab-was-just-added'), 500)
         }
 
-        tabData = { ...defaultTabProperties, ...tabData }
+        tabData = {
+            ...defaultTabProperties,
+            ...tabData,
+            id: this.nextTabId++,
+            sourceInstanceId: this.instanceId
+        }
         this.tabContentEl.appendChild(tabEl)
         this.setTabCloseEventListener(tabEl)
         this.updateTab(tabEl, tabData)
